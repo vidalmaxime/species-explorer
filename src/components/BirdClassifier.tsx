@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import BirdImageUploader from "./BirdImageUploader";
 import BirdClassificationResults from "./BirdClassificationResults";
 import { ClassificationResult } from "../utils/modelInference";
@@ -78,8 +77,9 @@ export default function BirdClassifier({
             birds.
           </p>
           <p className="text-gray-700 mt-1">
-            Upload a photo, and the AI will identify what's in the image and
-            search for recent observations if it recognizes an animal or bird.
+            Upload a photo, and the AI will identify what&apos;s in the image
+            and search for recent observations if it recognizes an animal or
+            bird.
           </p>
         </div>
       )}

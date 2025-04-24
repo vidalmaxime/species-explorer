@@ -65,7 +65,7 @@ export async function getObservations(
 
   // Ensure each observation has a properly formatted location array
   if (data && data.results && Array.isArray(data.results)) {
-    data.results = data.results.map((obs: any) => {
+    data.results = data.results.map((obs: Partial<Observation>) => {
       // Check if the observation has geojson coordinates
       if (
         obs &&
@@ -88,7 +88,7 @@ export async function getObservations(
         obs.location = [obs.latitude, obs.longitude];
       }
 
-      return obs;
+      return obs as Observation;
     });
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import SearchSpecies from "../components/SearchSpecies";
 import DaysSelector from "../components/DaysSelector";
 import ObservationMap from "../components/ObservationMap";
@@ -15,8 +15,6 @@ export default function Home() {
   const [observations, setObservations] = useState<Observation[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState<string>("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleTaxonSelect = async (taxon: Taxon) => {
     setSelectedTaxon(taxon);
@@ -58,7 +56,6 @@ export default function Home() {
   // Handle species selection from the bird classifier
   const handleSpeciesSelect = async (speciesName: string) => {
     try {
-      setSearchText(speciesName);
       setIsLoading(true);
       setError(null);
 

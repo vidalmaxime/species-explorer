@@ -1,4 +1,4 @@
-import { pipeline, env, RawImage } from "@xenova/transformers";
+import { pipeline, env } from "@xenova/transformers";
 
 // Configure the Transformers.js environment
 env.allowLocalModels = false;
@@ -8,10 +8,14 @@ env.useBrowserCache = true; // Enable browser cache for models
 // Add logging for troubleshooting
 console.log("Transformers.js environment configured");
 
+interface Classifier {
+  (input: string): Promise<Array<{ label: string; score: number }>>;
+}
+
 // Singleton pattern to ensure we only load the model once
 class BirdClassifier {
   private static instance: BirdClassifier;
-  private classifier: any = null;
+  private classifier: Classifier | null = null;
   private loading = false;
   private loadingPromise: Promise<void> | null = null;
   private modelError: Error | null = null;
@@ -110,7 +114,7 @@ export async function classifyBirdImage(
       console.log("Classification results:", results);
 
       // Parse the results
-      const processedResults = results.map((result: any) => {
+      const processedResults = results.map((result) => {
         const label = result.label;
         // Clean up label format (usually in format: label_name)
         const cleanedLabel = label

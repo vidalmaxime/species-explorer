@@ -47,7 +47,10 @@ interface MapProps {
 const Map = ({ observations }: MapProps) => {
   // Fix for Leaflet marker icon in Next.js
   useEffect(() => {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    // Use unknown as intermediate type for safe casting
+    const iconDefault = L.Icon.Default.prototype as unknown;
+    const iconDefaultAny = iconDefault as { _getIconUrl?: unknown };
+    delete iconDefaultAny._getIconUrl;
 
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:
