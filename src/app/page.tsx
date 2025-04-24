@@ -1,103 +1,167 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef } from "react";
+import SearchSpecies from "../components/SearchSpecies";
+import DaysSelector from "../components/DaysSelector";
+import ObservationMap from "../components/ObservationMap";
+import ObservationStats from "../components/ObservationStats";
+import BirdClassifier from "../components/BirdClassifier";
+import { Taxon, Observation } from "../types/inaturalist";
+import { getObservations, searchTaxa } from "../utils/api";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedTaxon, setSelectedTaxon] = useState<Taxon | null>(null);
+  const [daysAgo, setDaysAgo] = useState<number>(30);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleTaxonSelect = async (taxon: Taxon) => {
+    setSelectedTaxon(taxon);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getObservations(taxon.id, daysAgo);
+      setObservations(data.results);
+    } catch (err) {
+      console.error("Error fetching observations:", err);
+      setError("Failed to fetch observations. Please try again.");
+      setObservations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDaysChange = async (days: number) => {
+    setDaysAgo(days);
+
+    if (selectedTaxon) {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await getObservations(selectedTaxon.id, days);
+        setObservations(data.results);
+      } catch (err) {
+        console.error("Error fetching observations:", err);
+        setError("Failed to fetch observations. Please try again.");
+        setObservations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // Handle species selection from the bird classifier
+  const handleSpeciesSelect = async (speciesName: string) => {
+    try {
+      setSearchText(speciesName);
+      setIsLoading(true);
+      setError(null);
+
+      // Search for the species in iNaturalist
+      const searchResults = await searchTaxa(speciesName);
+
+      if (searchResults.results && searchResults.results.length > 0) {
+        // Select the first matching taxon
+        const taxon = searchResults.results[0];
+        setSelectedTaxon(taxon);
+
+        // Fetch observations for this taxon
+        const data = await getObservations(taxon.id, daysAgo);
+        setObservations(data.results);
+      } else {
+        setError(`No species found matching "${speciesName}"`);
+        setSelectedTaxon(null);
+        setObservations([]);
+      }
+    } catch (err) {
+      console.error("Error searching for species:", err);
+      setError("Failed to search for this species. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen p-6 bg-slate-50">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+          <h1 className="text-3xl font-bold mb-3 text-blue-800">
+            Species Explorer
+          </h1>
+          <p className="text-gray-700 mb-6 text-lg">
+            Search for species and view their recent observations on a map
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-6 md:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
+                Search Species
+              </label>
+              <SearchSpecies onSelect={handleTaxonSelect} />
+            </div>
+
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <DaysSelector value={daysAgo} onChange={handleDaysChange} />
+            </div>
+          </div>
+        </header>
+
+        {/* Bird Classifier Section */}
+        <BirdClassifier onSpeciesSelect={handleSpeciesSelect} />
+
+        {error && (
+          <div className="p-5 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-100 shadow-sm font-medium">
+            {error}
+          </div>
+        )}
+
+        {selectedTaxon && (
+          <ObservationStats
+            observations={observations}
+            taxonName={
+              selectedTaxon.preferred_common_name || selectedTaxon.name
+            }
+            daysAgo={daysAgo}
+          />
+        )}
+
+        <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 mb-6">
+          <ObservationMap observations={observations} isLoading={isLoading} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+        {selectedTaxon && observations.length === 0 && !isLoading && (
+          <div className="text-center p-8 bg-white rounded-lg shadow-sm border border-slate-100">
+            <p className="text-lg text-gray-700 font-medium">
+              No observations found for{" "}
+              {selectedTaxon.preferred_common_name || selectedTaxon.name} in the
+              past {daysAgo} days.
+            </p>
+            <p className="text-gray-600 mt-2">
+              Try increasing the time range or searching for a different
+              species.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <footer className="mt-12 text-center text-gray-600 text-sm">
+        <p>
+          Data provided by{" "}
+          <a
+            href="https://www.inaturalist.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            iNaturalist
+          </a>
+        </p>
       </footer>
-    </div>
+    </main>
   );
 }
