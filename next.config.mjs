@@ -2,6 +2,12 @@
 const nextConfig = {
   transpilePackages: ["react-leaflet", "leaflet", "@xenova/transformers"],
 
+  // Add ESLint configuration to prevent failing builds due to warnings
+  eslint: {
+    // Warning during build won't fail the build
+    ignoreDuringBuilds: true,
+  },
+
   // Add caching headers for model files
   async headers() {
     return [

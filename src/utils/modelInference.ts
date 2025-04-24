@@ -8,8 +8,15 @@ env.useBrowserCache = true; // Enable browser cache for models
 // Add logging for troubleshooting
 console.log("Transformers.js environment configured");
 
+// Define a type that matches the actual output from the pipeline
+interface ImageClassificationOutput {
+  label: string;
+  score: number;
+}
+
+// Modified interface to match the actual return type of the pipeline
 interface Classifier {
-  (input: string): Promise<Array<{ label: string; score: number }>>;
+  (input: string): Promise<ImageClassificationOutput[]>;
 }
 
 // Singleton pattern to ensure we only load the model once
@@ -63,10 +70,10 @@ class BirdClassifier {
       console.log("Loading image classifier model...");
 
       // Use a reliable web-optimized model
-      this.classifier = await pipeline(
+      this.classifier = (await pipeline(
         "image-classification",
         "Xenova/vit-base-patch16-224" // Use a reliable general image classifier
-      );
+      )) as unknown as Classifier;
 
       console.log("Image classifier model loaded successfully!");
     } catch (error) {
